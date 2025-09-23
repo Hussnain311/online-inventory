@@ -28,7 +28,6 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import AddItemModal from './components/AddItemModal';
@@ -38,7 +37,6 @@ import SellItemsModal from './components/SellItemsModal';
 import ProfileDrawer from './components/ProfileDrawer';
 
 export default function Inventory({ isDarkMode, onThemeChange }) {
-  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);

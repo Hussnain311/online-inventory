@@ -28,7 +28,7 @@ import { Add as AddIcon, Remove as RemoveIcon, Print as PrintIcon } from '@mui/i
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { auth, db } from '../firebase';
-import { doc, updateDoc, getDoc, setDoc, increment } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function SellItemsModal({ open, onClose, items, onSaleComplete }) {
   const [saleItems, setSaleItems] = useState([]);
