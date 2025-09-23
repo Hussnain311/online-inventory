@@ -7,25 +7,26 @@ const createAppTheme = (mode = 'light') => {
     palette: {
       mode,
       primary: {
-        main: '#2563eb',
-        light: '#3b82f6',
-        dark: '#1d4ed8',
+        main: isDark ? '#3b82f6' : '#2563eb',
+        light: isDark ? '#60a5fa' : '#3b82f6',
+        dark: isDark ? '#1d4ed8' : '#1d4ed8',
         contrastText: '#ffffff',
       },
       secondary: {
-        main: '#7c3aed',
-        light: '#8b5cf6',
-        dark: '#6d28d9',
+        main: isDark ? '#8b5cf6' : '#7c3aed',
+        light: isDark ? '#a78bfa' : '#8b5cf6',
+        dark: isDark ? '#6d28d9' : '#6d28d9',
         contrastText: '#ffffff',
       },
       background: {
-        default: isDark ? '#0f172a' : '#f8fafc',
-        paper: isDark ? '#1e293b' : '#ffffff',
+        default: isDark ? '#0a0a0a' : '#f8fafc',
+        paper: isDark ? '#111111' : '#ffffff',
       },
       text: {
-        primary: isDark ? '#f1f5f9' : '#1e293b',
-        secondary: isDark ? '#94a3b8' : '#64748b',
+        primary: isDark ? '#ffffff' : '#1e293b',
+        secondary: isDark ? '#a1a1aa' : '#64748b',
       },
+      divider: isDark ? '#27272a' : '#e2e8f0',
       success: {
         main: '#10b981',
         light: '#34d399',
@@ -101,28 +102,63 @@ const createAppTheme = (mode = 'light') => {
           },
         },
       },
-      MuiTextField: {
-        styleOverrides: {
-          root: {
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 8,
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#2563eb',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#2563eb',
-                borderWidth: 2,
-              },
-            },
-          },
-        },
-      },
       MuiPaper: {
         styleOverrides: {
           root: {
             boxShadow: isDark 
               ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2)'
               : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            backgroundColor: isDark ? '#111111' : '#ffffff',
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark ? '#111111' : '#ffffff',
+            border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+          },
+        },
+      },
+      MuiTableContainer: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark ? '#111111' : '#ffffff',
+            '& .MuiTable-root': {
+              backgroundColor: isDark ? '#111111' : '#ffffff',
+            },
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            borderColor: isDark ? '#27272a' : '#e2e8f0',
+            color: isDark ? '#ffffff' : '#1e293b',
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            backgroundColor: isDark ? '#111111' : '#ffffff',
+            border: isDark ? '1px solid #27272a' : '1px solid #e2e8f0',
+          },
+        },
+      },
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '& .MuiOutlinedInput-root': {
+              backgroundColor: isDark ? '#1a1a1a' : '#ffffff',
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: isDark ? '#3b82f6' : '#2563eb',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: isDark ? '#3b82f6' : '#2563eb',
+                borderWidth: 2,
+              },
+            },
           },
         },
       },

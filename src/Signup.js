@@ -17,7 +17,8 @@ import {
   Divider,
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
+  useTheme
 } from '@mui/material';
 import {
   PersonAddAlt as PersonAddAltIcon,
@@ -36,6 +37,7 @@ import { auth } from './firebase';
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 export default function Signup() {
+  const theme = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -94,13 +96,37 @@ export default function Signup() {
     
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate('/inventory');
+      provider.addScope('email');
+      provider.addScope('profile');
+      
+      // Try popup first
+      try {
+        const result = await signInWithPopup(auth, provider);
+        console.log('Google sign-up successful:', result.user);
+        navigate('/inventory');
+        return;
+      } catch (popupError) {
+        console.log('Popup failed, trying redirect:', popupError);
+        
+        // Fallback to redirect if popup fails
+        if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/internal-error') {
+          setError('Google sign-in is not configured yet. Please use email/password sign-up for now.');
+          return;
+        }
+        throw popupError;
+      }
     } catch (err) {
+      console.error('Google sign-up error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
         setError('Sign-up was cancelled. Please try again.');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        setError('An account already exists with this email. Please use email/password sign-in.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Popup was blocked by your browser. Please allow popups and try again.');
+      } else if (err.code === 'auth/internal-error') {
+        setError('Google sign-in is not configured yet. Please use email/password sign-up for now.');
       } else {
-        setError('Failed to sign up with Google. Please try again.');
+        setError(`Failed to sign up with Google: ${err.message}`);
       }
     } finally {
       setGoogleLoading(false);
@@ -113,10 +139,15 @@ export default function Signup() {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: theme.palette.mode === 'dark' 
+          ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)'
+          : 'linear-gradient(135deg, #ffffff 0%, #e3f2fd 50%, #bbdefb 100%)',
         position: 'relative',
         overflow: 'auto',
-        py: { xs: 2, md: 4 }
+        py: { xs: 2, md: 4 },
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}
     >
       {/* Animated Background Elements */}
@@ -162,43 +193,43 @@ export default function Signup() {
       />
 
       <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
-        <Grid container spacing={4} alignItems="center" sx={{ minHeight: { xs: 'auto', md: '80vh' } }}>
-          {/* Left Side - Branding */}
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={{ xs: 2, md: 6 }} alignItems="center" sx={{ minHeight: { xs: 'auto', md: '80vh' } }}>
+          {/* Left Side - Welcome Text (Desktop only) */}
+          <Grid size={{ xs: 12, md: 5 }} sx={{ display: { xs: 'none', md: 'block' } }}>
             <Fade in timeout={1000}>
-              <Box sx={{ color: 'white', textAlign: { xs: 'center', md: 'left' }, mb: { xs: 4, md: 0 } }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, justifyContent: { xs: 'center', md: 'flex-start' } }}>
-                  <InventoryIcon sx={{ fontSize: { xs: 36, md: 48 }, mr: 2 }} />
-                  <Typography variant="h3" sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '3rem' } }}>
+              <Box sx={{ color: 'text.primary', textAlign: 'left', mb: { xs: 4, md: 0 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <InventoryIcon sx={{ fontSize: 36, mr: 2, color: 'primary.main' }} />
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main' }}>
                     InventoryPro
                   </Typography>
                 </Box>
-                <Typography variant="h4" sx={{ fontWeight: 600, mb: 2, fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                <Typography variant="h3" sx={{ fontWeight: 800, color: 'primary.main', mb: 2 }}>
                   Join Our Community! 🚀
                 </Typography>
-                <Typography variant="h6" sx={{ opacity: 0.9, mb: 4, lineHeight: 1.6, fontSize: { xs: '1rem', md: '1.25rem' } }}>
+                <Typography variant="h5" sx={{ fontWeight: 600, mb: 3, color: 'text.primary' }}>
                   Create your account and start managing your inventory like a pro
                 </Typography>
                 
                 {/* Feature Highlights */}
-                <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                <Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <CheckCircleIcon sx={{ mr: 2, fontSize: 24 }} />
-                    <Typography variant="body1">Free Forever Plan</Typography>
+                    <CheckCircleIcon sx={{ mr: 2, fontSize: 20, color: 'primary.main' }} />
+                    <Typography variant="body2" color="text.secondary">Free Forever Plan</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <SecurityIcon sx={{ mr: 2, fontSize: 24 }} />
-                    <Typography variant="body1">Enterprise Security</Typography>
+                    <SecurityIcon sx={{ mr: 2, fontSize: 20, color: 'primary.main' }} />
+                    <Typography variant="body2" color="text.secondary">Enterprise Security</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <TrendingUpIcon sx={{ mr: 2, fontSize: 24 }} />
-                    <Typography variant="body1">Advanced Analytics</Typography>
+                    <TrendingUpIcon sx={{ mr: 2, fontSize: 20, color: 'primary.main' }} />
+                    <Typography variant="body2" color="text.secondary">Advanced Analytics</Typography>
                   </Box>
                 </Box>
 
                 {/* Progress Steps */}
                 <Box sx={{ mt: 4, display: { xs: 'none', md: 'block' } }}>
-                  <Stepper activeStep={0} orientation="vertical" sx={{ '& .MuiStepLabel-root': { color: 'white' } }}>
+                  <Stepper activeStep={0} orientation="vertical" sx={{ '& .MuiStepLabel-root': { color: 'text.primary' } }}>
                     {steps.map((label) => (
                       <Step key={label}>
                         <StepLabel>{label}</StepLabel>
@@ -210,22 +241,50 @@ export default function Signup() {
             </Fade>
           </Grid>
 
-          {/* Right Side - Signup Form */}
-          <Grid item xs={12} md={6}>
+          {/* Center - Signup Form */}
+          <Grid size={{ xs: 12, md: 2 }}>
+            {/* Mobile Welcome Text */}
+            <Box sx={{ display: { xs: 'block', md: 'none' }, textAlign: 'center', mb: 3, px: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                <InventoryIcon sx={{ fontSize: 28, mr: 1, color: 'primary.main' }} />
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                  InventoryPro
+                </Typography>
+              </Box>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary', mb: 1 }}>
+                Join Our Community! 🚀
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2, px: 2 }}>
+                Create your account and start managing your inventory today
+              </Typography>
+            </Box>
             <Fade in timeout={1200}>
               <Paper 
-                elevation={24} 
+                elevation={8} 
                 sx={{ 
-                  p: { xs: 3, md: 5 }, 
-                  borderRadius: 4,
-                  background: 'rgba(255, 255, 255, 0.95)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)',
+                  p: { xs: 2, md: 4 }, 
+                  borderRadius: 3,
+                  background: theme.palette.mode === 'dark' 
+                    ? 'rgba(17, 17, 17, 0.95)'
+                    : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(10px)',
+                  border: theme.palette.mode === 'dark' 
+                    ? '1px solid rgba(39, 39, 42, 0.3)'
+                    : '1px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
                   position: 'relative',
                   overflow: 'hidden',
-                  maxWidth: 500,
-                  mx: 'auto'
+                  maxWidth: { xs: '100%', md: 400 },
+                  mx: 'auto',
+                  width: '100%',
+                  // Mobile optimizations
+                  '& .MuiTextField-root': {
+                    mb: { xs: 2, md: 3 }
+                  },
+                  '& .MuiButton-root': {
+                    py: { xs: 1.5, md: 1.8 },
+                    fontSize: { xs: '0.9rem', md: '1rem' }
+                  }
                 }}
               >
                 {/* Decorative Elements */}
@@ -282,7 +341,10 @@ export default function Signup() {
                     fullWidth
                     variant="outlined"
                     startIcon={googleLoading ? <CircularProgress size={20} /> : <GoogleIcon />}
-                    onClick={handleGoogleSignUp}
+                    onClick={() => {
+                      console.log('Google sign-up button clicked');
+                      handleGoogleSignUp();
+                    }}
                     disabled={loading || googleLoading}
                     sx={{ 
                       py: 1.5,
@@ -461,6 +523,49 @@ export default function Signup() {
                   </Box>
                 </Box>
               </Paper>
+            </Fade>
+            
+            {/* Mobile Bottom Text */}
+            <Box sx={{ display: { xs: 'block', md: 'none' }, textAlign: 'center', mt: 3 }}>
+              <Typography variant="body2" color="text.secondary">
+                Free Forever • Enterprise Security • Advanced Analytics
+              </Typography>
+            </Box>
+          </Grid>
+
+          {/* Right Side - Additional Info (Desktop only) */}
+          <Grid size={{ xs: 12, md: 5 }} sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Fade in timeout={1400}>
+              <Box sx={{ color: 'text.primary', textAlign: 'right' }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'primary.main' }}>
+                  Get Started Today
+                </Typography>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    ✓ No credit card required
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    ✓ Setup in under 5 minutes
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    ✓ 24/7 customer support
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    ✓ Free forever plan
+                  </Typography>
+                </Box>
+                <Box sx={{ 
+                  p: 2, 
+                  bgcolor: 'primary.main', 
+                  color: 'white', 
+                  borderRadius: 2,
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Join 1000+ businesses already using InventoryPro
+                  </Typography>
+                </Box>
+              </Box>
             </Fade>
           </Grid>
         </Grid>
