@@ -117,6 +117,11 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
     }).format(price);
   };
 
+  const calculateProfitPercentage = (buyerPrice, sellerPrice) => {
+    if (!buyerPrice || !sellerPrice || buyerPrice === 0) return 0;
+    return ((sellerPrice - buyerPrice) / buyerPrice * 100).toFixed(1);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -163,7 +168,6 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
           onClose={() => setAnchorEl(null)}
         >
           <MenuItem onClick={() => handleSort('name')}>Name</MenuItem>
-          <MenuItem onClick={() => handleSort('buyerPrice')}>Buyer Price</MenuItem>
           <MenuItem onClick={() => handleSort('sellerPrice')}>Seller Price</MenuItem>
           <MenuItem onClick={() => handleSort('quantity')}>Quantity</MenuItem>
           <MenuItem onClick={() => handleSort('createdAt')}>Date Added</MenuItem>
@@ -176,18 +180,19 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
           <TableHead>
             <TableRow sx={{ bgcolor: 'background.default' }}>
               <TableCell sx={{ fontWeight: 600 }}>Item Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Buyer Price</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Box/Rack</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Profit %</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Seller Price</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Quantity</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Stock Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Profit Margin</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Total Value</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4 }}>
+                <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
                   <Typography color="text.secondary">
                     {searchTerm ? 'No items found matching your search' : 'No inventory items yet'}
                   </Typography>
@@ -196,7 +201,8 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
             ) : (
               filteredItems.map((item) => {
                 const stockStatus = getStockStatus(item.quantity);
-                const profitMargin = ((item.sellerPrice - item.buyerPrice) / item.buyerPrice * 100).toFixed(1);
+                const profitPercentage = calculateProfitPercentage(item.buyerPrice, item.sellerPrice);
+                const totalValue = item.sellerPrice * item.quantity;
                 
                 return (
                   <TableRow key={item.id} hover>
@@ -207,7 +213,18 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {formatPrice(item.buyerPrice)}
+                        {item.boxNumber || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: profitPercentage > 0 ? 'success.main' : 'error.main',
+                          fontWeight: 500
+                        }}
+                      >
+                        {profitPercentage}%
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -229,14 +246,8 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
                       />
                     </TableCell>
                     <TableCell>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: profitMargin > 0 ? 'success.main' : 'error.main',
-                          fontWeight: 500
-                        }}
-                      >
-                        {profitMargin}%
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {formatPrice(totalValue)}
                       </Typography>
                     </TableCell>
                     <TableCell>

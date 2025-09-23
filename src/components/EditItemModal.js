@@ -21,7 +21,8 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
     name: '',
     buyerPrice: '',
     sellerPrice: '',
-    quantity: ''
+    quantity: '',
+    boxNumber: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +33,8 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
         name: item.name || '',
         buyerPrice: item.buyerPrice || '',
         sellerPrice: item.sellerPrice || '',
-        quantity: item.quantity || ''
+        quantity: item.quantity || '',
+        boxNumber: item.boxNumber || ''
       });
     }
   }, [item, open]);
@@ -79,6 +81,7 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
         buyerPrice: parseFloat(formData.buyerPrice),
         sellerPrice: parseFloat(formData.sellerPrice),
         quantity: parseInt(formData.quantity),
+        boxNumber: formData.boxNumber.trim() || '',
         updatedAt: serverTimestamp()
       });
       onItemUpdated();
@@ -135,7 +138,7 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
             required
             disabled={loading}
             InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              startAdornment: <InputAdornment position="start">PKR</InputAdornment>,
             }}
             sx={{ mb: 3 }}
           />
@@ -150,7 +153,7 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
             required
             disabled={loading}
             InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              startAdornment: <InputAdornment position="start">PKR</InputAdornment>,
             }}
             sx={{ mb: 3 }}
           />
@@ -165,6 +168,17 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
             required
             disabled={loading}
             inputProps={{ min: 0 }}
+            sx={{ mb: 3 }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Box/Rack Number"
+            name="boxNumber"
+            value={formData.boxNumber}
+            onChange={handleChange}
+            placeholder="e.g., A-1, B-2, Rack-3"
+            disabled={loading}
           />
         </DialogContent>
         
