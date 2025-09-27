@@ -22,7 +22,8 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
     name: '',
     buyerPrice: '',
     sellerPrice: '',
-    quantity: ''
+    quantity: '',
+    boxNumber: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -68,6 +69,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
         buyerPrice: parseFloat(formData.buyerPrice),
         sellerPrice: parseFloat(formData.sellerPrice),
         quantity: parseInt(formData.quantity),
+        boxNumber: formData.boxNumber.trim() || '',
         userId: auth.currentUser.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -80,7 +82,8 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
         name: '',
         buyerPrice: '',
         sellerPrice: '',
-        quantity: ''
+        quantity: '',
+        boxNumber: ''
       });
       
       onItemAdded();
@@ -98,7 +101,8 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
         name: '',
         buyerPrice: '',
         sellerPrice: '',
-        quantity: ''
+        quantity: '',
+        boxNumber: ''
       });
       setError('');
       onClose();
@@ -143,7 +147,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
             required
             disabled={loading}
             InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              startAdornment: <InputAdornment position="start">PKR</InputAdornment>,
             }}
             sx={{ mb: 3 }}
           />
@@ -158,7 +162,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
             required
             disabled={loading}
             InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              startAdornment: <InputAdornment position="start">PKR</InputAdornment>,
             }}
             sx={{ mb: 3 }}
           />
@@ -173,6 +177,17 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
             required
             disabled={loading}
             inputProps={{ min: 0 }}
+            sx={{ mb: 3 }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Box/Rack Number"
+            name="boxNumber"
+            value={formData.boxNumber}
+            onChange={handleChange}
+            placeholder="e.g., A-1, B-2, Rack-3"
+            disabled={loading}
           />
         </DialogContent>
         

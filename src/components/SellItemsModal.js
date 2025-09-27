@@ -35,21 +35,41 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [receiptNamingMethod, setReceiptNamingMethod] = useState('sequential'); // 'sequential' or 'datetime'
+  const [totalDiscount, setTotalDiscount] = useState(0); // Total discount for all items
 
   React.useEffect(() => {
     if (open) {
-      setSaleItems([]);
+      setSaleItems([{ itemId: '', quantity: 1, discount: 0 }]); // Start with one empty row
       setError('');
       setLoading(false);
     }
   }, [open]);
 
   const handleAddItem = () => {
-    setSaleItems([...saleItems, { itemId: '', quantity: 1 }]);
+    setSaleItems([...saleItems, { itemId: '', quantity: 1, discount: 0 }]);
+  };
+
+  const handleItemSelect = (idx, itemId) => {
+    const updatedItems = saleItems.map((row, i) =>
+      i === idx ? { ...row, itemId } : row
+    );
+    setSaleItems(updatedItems);
+    
+    // Auto-add next row if this is the last row and it's not empty
+    if (idx === saleItems.length - 1 && itemId) {
+      setSaleItems([...updatedItems, { itemId: '', quantity: 1, discount: 0 }]);
+    }
   };
 
   const handleRemoveItem = (idx) => {
     setSaleItems(saleItems.filter((_, i) => i !== idx));
+  };
+
+  const handleItemDiscountChange = (idx, discount) => {
+    const updatedItems = saleItems.map((row, i) =>
+      i === idx ? { ...row, discount: parseFloat(discount) || 0 } : row
+    );
+    setSaleItems(updatedItems);
   };
 
   const handleChange = (idx, field, value) => {
@@ -64,14 +84,25 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
     const item = getItem(row.itemId);
     const quantity = parseInt(row.quantity) || 0;
     const price = item ? item.sellerPrice : 0;
+    const itemDiscount = parseFloat(row.discount) || 0;
+    const itemTotal = price * quantity;
+    const itemDiscountAmount = (itemTotal * itemDiscount) / 100;
+    const itemFinalTotal = itemTotal - itemDiscountAmount;
+    
     return {
       name: item ? item.name : '',
       price,
       quantity,
-      total: price * quantity
+      discount: itemDiscount,
+      discountAmount: itemDiscountAmount,
+      total: itemFinalTotal
     };
   });
-  const grandTotal = receiptRows.reduce((sum, r) => sum + r.total, 0);
+  
+  const subtotal = receiptRows.reduce((sum, r) => sum + (r.price * r.quantity), 0);
+  const totalItemDiscounts = receiptRows.reduce((sum, r) => sum + r.discountAmount, 0);
+  const totalDiscountAmount = (subtotal * totalDiscount) / 100;
+  const grandTotal = subtotal - totalItemDiscounts - totalDiscountAmount;
 
   const validateSale = () => {
     if (saleItems.length === 0) return 'Add at least one item.';
@@ -144,44 +175,176 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
         const fileName = await generateReceiptFileName();
         const docPDF = new jsPDF();
         
-        // Enhanced PDF styling
-        docPDF.setFontSize(20);
-        docPDF.setFont(undefined, 'bold');
-        docPDF.text('Sales Receipt', 14, 18);
+        // Load settings first
+        let settings = {};
+        try {
+          const userId = auth.currentUser?.uid;
+          if (userId) {
+            const userDoc = doc(db, 'users', userId);
+            const userData = await getDoc(userDoc);
+            if (userData.exists() && userData.data().receiptSettings) {
+              settings = userData.data().receiptSettings;
+            }
+          }
+        } catch (settingsErr) {
+          console.error('Error loading receipt settings:', settingsErr);
+        }
         
-        // Add date and time
+        // Professional Header Design
+        docPDF.setFontSize(24);
+        docPDF.setFont(undefined, 'bold');
+        docPDF.text('SALES RECEIPT', 14, 20);
+        
+        // Shop Details at Top Right
         docPDF.setFontSize(12);
+        docPDF.setFont(undefined, 'bold');
+        const shopName = settings?.shopName || 'Your Store';
+        const shopAddress = settings?.address || 'Your Address';
+        const shopPhone = settings?.phoneNumber || 'Your Phone';
+        
+        // Calculate right alignment position
+        const pageWidth = docPDF.internal.pageSize.getWidth();
+        const shopNameWidth = docPDF.getTextWidth(shopName);
+        const shopAddressWidth = docPDF.getTextWidth(shopAddress);
+        const shopPhoneWidth = docPDF.getTextWidth(shopPhone);
+        
+        docPDF.text(shopName, pageWidth - shopNameWidth - 14, 20);
+        docPDF.setFont(undefined, 'normal');
+        docPDF.text(shopAddress, pageWidth - shopAddressWidth - 14, 28);
+        docPDF.text(shopPhone, pageWidth - shopPhoneWidth - 14, 36);
+        
+        // Receipt Details Section with Box
+        docPDF.setFontSize(10);
         docPDF.setFont(undefined, 'normal');
         const now = new Date();
         const dateStr = now.toLocaleDateString();
         const timeStr = now.toLocaleTimeString();
-        docPDF.text(`Date: ${dateStr}`, 14, 28);
-        docPDF.text(`Time: ${timeStr}`, 14, 35);
         
-        // Add receipt number if sequential
+        // Receipt info in a professional box
+        docPDF.setDrawColor(0, 0, 0);
+        docPDF.setLineWidth(0.5);
+        docPDF.rect(14, 45, 80, 20);
+        
+        docPDF.text(`Date: ${dateStr}`, 18, 52);
+        docPDF.text(`Time: ${timeStr}`, 18, 58);
+        
         if (receiptNamingMethod === 'sequential') {
           const receiptNumber = fileName.replace('receipt', '').replace('.pdf', '');
-          docPDF.text(`Receipt #: ${receiptNumber}`, 14, 42);
+          docPDF.text(`Receipt #: ${receiptNumber}`, 18, 64);
         }
         
+        // Customer section
+        docPDF.text('Customer: Walk-in Customer', 18, 70);
+        
         autoTable(docPDF, {
-          startY: 50,
-          head: [['Name', 'Unit Price', 'Quantity', 'Total']],
-          body: receiptRows.map(r => [r.name, `$${r.price}`, r.quantity, `$${r.total}`]),
+          startY: 80,
+          head: [['Name', 'Unit Price', 'Quantity', 'Discount %', 'Total']],
+          body: receiptRows.map(r => [r.name, `PKR ${r.price}`, r.quantity, `${r.discount}%`, `PKR ${r.total.toFixed(2)}`]),
           headStyles: {
-            fillColor: [102, 126, 234],
+            fillColor: [0, 0, 0],
             textColor: 255,
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            halign: 'center'
+          },
+          bodyStyles: {
+            fillColor: [255, 255, 255],
+            textColor: [0, 0, 0],
+            halign: 'center'
+          },
+          alternateRowStyles: {
+            fillColor: [248, 249, 250]
+          },
+          columnStyles: {
+            0: { halign: 'left' }, // Name column left aligned
+            4: { halign: 'right' } // Total column right aligned
           },
           styles: {
-            fontSize: 10
-          }
+            fontSize: 10,
+            cellPadding: 4
+          },
+          margin: { left: 14, right: 14 }
         });
         
-        // Grand total with better styling
+        // Professional Total Section with Box
+        const yPosition = docPDF.lastAutoTable.finalY + 15;
+        
+        // Draw a box around the totals
+        const boxHeight = 30 + (totalItemDiscounts > 0 ? 8 : 0) + (totalDiscountAmount > 0 ? 8 : 0);
+        docPDF.setDrawColor(0, 0, 0);
+        docPDF.setLineWidth(0.5);
+        docPDF.rect(14, yPosition - 5, 80, boxHeight);
+        
+        // Right-align the totals
+        const rightAlign = 14 + 80 - 5;
+        
+        docPDF.setFontSize(11);
+        docPDF.setFont(undefined, 'normal');
+        const subtotalText = `Subtotal: PKR ${subtotal.toFixed(2)}`;
+        const subtotalWidth = docPDF.getTextWidth(subtotalText);
+        docPDF.text(subtotalText, rightAlign - subtotalWidth, yPosition);
+        
+        let currentY = yPosition + 8;
+        
+        if (totalItemDiscounts > 0) {
+          const itemDiscountText = `Item Discounts: -PKR ${totalItemDiscounts.toFixed(2)}`;
+          const itemDiscountWidth = docPDF.getTextWidth(itemDiscountText);
+          docPDF.text(itemDiscountText, rightAlign - itemDiscountWidth, currentY);
+          currentY += 8;
+        }
+        
+        if (totalDiscountAmount > 0) {
+          const totalDiscountText = `Total Discount (${totalDiscount}%): -PKR ${totalDiscountAmount.toFixed(2)}`;
+          const totalDiscountWidth = docPDF.getTextWidth(totalDiscountText);
+          docPDF.text(totalDiscountText, rightAlign - totalDiscountWidth, currentY);
+          currentY += 8;
+        }
+        
+        // Grand Total with emphasis
         docPDF.setFontSize(14);
         docPDF.setFont(undefined, 'bold');
-        docPDF.text(`Grand Total: $${grandTotal}`, 14, docPDF.lastAutoTable.finalY + 12);
+        const grandTotalText = `Grand Total: PKR ${grandTotal.toFixed(2)}`;
+        const grandTotalWidth = docPDF.getTextWidth(grandTotalText);
+        docPDF.text(grandTotalText, rightAlign - grandTotalWidth, currentY + 5);
+        
+        // Professional Footer Section
+        let footerY = currentY + 25;
+        
+        // Thank you message
+        docPDF.setFontSize(12);
+        docPDF.setFont(undefined, 'bold');
+        docPDF.text('Thank you for your business!', 14, footerY);
+        footerY += 15;
+        
+        // Shop details in footer
+        docPDF.setFontSize(10);
+        docPDF.setFont(undefined, 'normal');
+        
+        if (settings.shopName) {
+          docPDF.text(`Store: ${settings.shopName}`, 14, footerY);
+          footerY += 6;
+        }
+        
+        if (settings.phoneNumber) {
+          docPDF.text(`Phone: ${settings.phoneNumber}`, 14, footerY);
+          footerY += 6;
+        }
+        
+        if (settings.address) {
+          docPDF.text(`Address: ${settings.address}`, 14, footerY);
+          footerY += 6;
+        }
+        
+        // Footer line
+        footerY += 5;
+        docPDF.setDrawColor(0, 0, 0);
+        docPDF.setLineWidth(0.5);
+        docPDF.line(14, footerY, pageWidth - 14, footerY);
+        
+        // Generated timestamp
+        footerY += 8;
+        docPDF.setFontSize(8);
+        docPDF.setFont(undefined, 'italic');
+        docPDF.text(`Receipt generated on ${dateStr} at ${timeStr}`, 14, footerY);
         
         docPDF.save(fileName);
         console.log('PDF generated successfully:', fileName);
@@ -210,7 +373,11 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Sell Items & Generate Receipt</DialogTitle>
+      <DialogTitle>
+        <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+          Sell Items & Generate Receipt
+        </Typography>
+      </DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 2 }}>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddItem} disabled={loading}>
@@ -245,11 +412,12 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Item</TableCell>
-                <TableCell>Unit Price</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Total</TableCell>
-                <TableCell>Remove</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Item</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Unit Price</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Quantity</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Discount %</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Total</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Remove</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -257,23 +425,37 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
                 const item = getItem(row.itemId);
                 return (
                   <TableRow key={idx}>
-                    <TableCell sx={{ minWidth: 250 }}>
+                    <TableCell sx={{ minWidth: 200, py: 1 }}>
                       <Autocomplete
                         options={items}
                         getOptionLabel={option => option.name || ''}
                         value={item || null}
-                        onChange={(_, newValue) => handleChange(idx, 'itemId', newValue ? newValue.id : '')}
+                        onChange={(_, newValue) => {
+                          const itemId = newValue ? newValue.id : '';
+                          handleChange(idx, 'itemId', itemId);
+                          handleItemSelect(idx, itemId);
+                        }}
                         renderInput={params => (
-                          <TextField {...params} label="Select Item" variant="outlined" fullWidth disabled={loading} />
+                          <TextField 
+                            {...params} 
+                            label="Select Item" 
+                            variant="outlined" 
+                            fullWidth 
+                            disabled={loading}
+                            size="small"
+                            sx={{ fontSize: '0.875rem' }}
+                          />
                         )}
                         isOptionEqualToValue={(option, value) => option.id === value.id}
                         disabled={loading}
                       />
                     </TableCell>
-                    <TableCell>
-                      {item ? `$${item.sellerPrice}` : '-'}
+                    <TableCell sx={{ py: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                        {item ? `PKR ${item.sellerPrice}` : '-'}
+                      </Typography>
                     </TableCell>
-                    <TableCell>
+                    <TableCell sx={{ py: 1 }}>
                       <TextField
                         type="number"
                         value={row.quantity}
@@ -281,15 +463,35 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
                         inputProps={{ min: 1, max: item ? item.quantity : undefined }}
                         fullWidth
                         disabled={loading || !item}
+                        size="small"
+                        sx={{ fontSize: '0.875rem' }}
                       />
-                      {item && <Typography variant="caption" color="text.secondary">Stock: {item.quantity}</Typography>}
+                      {item && <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Stock: {item.quantity}</Typography>}
                     </TableCell>
-                    <TableCell>
-                      {item ? `$${item.sellerPrice * (parseInt(row.quantity) || 0)}` : '-'}
+                    <TableCell sx={{ py: 1 }}>
+                      <TextField
+                        type="number"
+                        value={row.discount}
+                        onChange={e => handleItemDiscountChange(idx, e.target.value)}
+                        inputProps={{ min: 0, max: 100, step: 0.1 }}
+                        fullWidth
+                        size="small"
+                        disabled={loading || !item}
+                        placeholder="0"
+                        sx={{ fontSize: '0.875rem' }}
+                        InputProps={{
+                          endAdornment: '%'
+                        }}
+                      />
                     </TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleRemoveItem(idx)} disabled={loading}>
-                        <RemoveIcon />
+                    <TableCell sx={{ py: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                        {item ? `PKR ${(item.sellerPrice * (parseInt(row.quantity) || 0) * (1 - (parseFloat(row.discount) || 0) / 100)).toFixed(2)}` : '-'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <IconButton onClick={() => handleRemoveItem(idx)} disabled={loading} size="small">
+                        <RemoveIcon sx={{ fontSize: 18 }} />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -298,8 +500,31 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
             </TableBody>
           </Table>
         </TableContainer>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
-          <Typography variant="h6">Grand Total: ${grandTotal}</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <TextField
+              label="Total Discount %"
+              type="number"
+              value={totalDiscount}
+              onChange={e => setTotalDiscount(parseFloat(e.target.value) || 0)}
+              inputProps={{ min: 0, max: 100, step: 0.1 }}
+              size="small"
+              disabled={loading}
+              placeholder="0"
+              sx={{ width: 140, fontSize: '0.875rem' }}
+              InputProps={{
+                endAdornment: '%'
+              }}
+            />
+            <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+              Grand Total: PKR {grandTotal.toFixed(2)}
+            </Typography>
+          </Box>
+          {totalDiscount > 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+              Total Discount: PKR {totalDiscountAmount.toFixed(2)}
+            </Typography>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>

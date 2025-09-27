@@ -29,18 +29,21 @@ import {
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
   Close as CloseIcon,
-  PhotoCamera as PhotoCameraIcon
+  PhotoCamera as PhotoCameraIcon,
+  Receipt as ReceiptIcon
 } from '@mui/icons-material';
 import { auth, db } from '../firebase';
 import { updateProfile, deleteUser } from 'firebase/auth';
 import { deleteDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import ProfilePictureUpload from './ProfilePictureUpload';
+import ReceiptSettings from './ReceiptSettings';
 
 export default function ProfileDrawer({ open, onClose, user, onThemeChange, isDarkMode }) {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
+  const [receiptSettingsOpen, setReceiptSettingsOpen] = useState(false);
   const [newName, setNewName] = useState(user?.displayName || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,6 +98,11 @@ export default function ProfileDrawer({ open, onClose, user, onThemeChange, isDa
       text: 'Profile Settings',
       icon: <PersonIcon />,
       onClick: () => setProfileDialogOpen(true)
+    },
+    {
+      text: 'Receipt Settings',
+      icon: <ReceiptIcon />,
+      onClick: () => setReceiptSettingsOpen(true)
     },
     {
       text: 'Settings',
@@ -312,6 +320,12 @@ export default function ProfileDrawer({ open, onClose, user, onThemeChange, isDa
           // Update local state if needed
           console.log('Profile photo updated:', newPhotoURL);
         }}
+      />
+
+      {/* Receipt Settings Dialog */}
+      <ReceiptSettings
+        open={receiptSettingsOpen}
+        onClose={() => setReceiptSettingsOpen(false)}
       />
     </>
   );
