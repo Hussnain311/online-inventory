@@ -158,7 +158,11 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
       }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {/* Desktop View */}
+            <Box sx={{ 
+              display: { xs: 'none', md: 'flex' }, 
+              alignItems: 'center' 
+            }}>
               {/* Modern Icon */}
               <Box sx={{ 
                 position: 'relative',
@@ -263,8 +267,57 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
                 </Box>
               </Box>
             </Box>
+
+            {/* Mobile View - Only Icon and Profile */}
+            <Box sx={{ 
+              display: { xs: 'flex', md: 'none' }, 
+              alignItems: 'center',
+              width: '100%',
+              justifyContent: 'space-between'
+            }}>
+              {/* Mobile Icon */}
+              <Box sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '10px',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)'
+              }}>
+                <Typography sx={{ 
+                  fontSize: '18px', 
+                  color: 'white'
+                }}>
+                  📦
+                </Typography>
+              </Box>
+
+              {/* Mobile Title */}
+              <Typography variant="h6" sx={{ 
+                fontWeight: 700, 
+                color: 'text.primary',
+                fontSize: '1.1rem',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)'
+                  : 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}>
+                InventoryPro
+              </Typography>
+            </Box>
             
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Desktop Right Side */}
+            <Box sx={{ 
+              display: { xs: 'none', md: 'flex' }, 
+              alignItems: 'center', 
+              gap: 2 
+            }}>
               {/* System Status */}
               <Box sx={{ 
                 display: 'flex', 
@@ -296,45 +349,45 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
                   System Online
                 </Typography>
               </Box>
-              
-              {/* Profile Button */}
-              <IconButton 
-                onClick={() => setProfileDrawerOpen(true)}
-                sx={{ 
-                  width: 40,
-                  height: 40,
-                  borderRadius: '12px',
+            </Box>
+            
+            {/* Profile Button - Always Visible */}
+            <IconButton 
+              onClick={() => setProfileDrawerOpen(true)}
+              sx={{ 
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                background: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(0, 0, 0, 0.05)',
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark'
+                  ? 'rgba(255, 255, 255, 0.1)'
+                  : 'rgba(0, 0, 0, 0.1)',
+                '&:hover': { 
                   background: theme.palette.mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.1)'
-                    : 'rgba(0, 0, 0, 0.05)',
-                  border: '1px solid',
-                  borderColor: theme.palette.mode === 'dark'
-                    ? 'rgba(255, 255, 255, 0.1)'
+                    ? 'rgba(255, 255, 255, 0.2)'
                     : 'rgba(0, 0, 0, 0.1)',
-                  '&:hover': { 
-                    background: theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.2)'
-                      : 'rgba(0, 0, 0, 0.1)',
-                    transform: 'scale(1.05)'
-                  },
-                  transition: 'all 0.2s ease'
+                  transform: 'scale(1.05)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Avatar 
+                src={auth.currentUser?.photoURL}
+                sx={{ 
+                  width: 32, 
+                  height: 32,
+                  border: '2px solid',
+                  borderColor: theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.2)'
+                    : 'rgba(0, 0, 0, 0.1)'
                 }}
               >
-                <Avatar 
-                  src={auth.currentUser?.photoURL}
-                  sx={{ 
-                    width: 32, 
-                    height: 32,
-                    border: '2px solid',
-                    borderColor: theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.2)'
-                      : 'rgba(0, 0, 0, 0.1)'
-                  }}
-                >
-                  {auth.currentUser?.displayName?.charAt(0)?.toUpperCase() || auth.currentUser?.email?.charAt(0)?.toUpperCase()}
-                </Avatar>
-              </IconButton>
-            </Box>
+                {auth.currentUser?.displayName?.charAt(0)?.toUpperCase() || auth.currentUser?.email?.charAt(0)?.toUpperCase()}
+              </Avatar>
+            </IconButton>
           </Box>
         </Container>
       </Box>

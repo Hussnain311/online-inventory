@@ -21,20 +21,26 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  useTheme
 } from '@mui/material';
-import { Add as AddIcon, Remove as RemoveIcon, Print as PrintIcon } from '@mui/icons-material';
+import { Add as AddIcon, Remove as RemoveIcon, Print as PrintIcon, CameraAlt as CameraIcon } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { auth, db } from '../firebase';
 import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function SellItemsModal({ open, onClose, items, onSaleComplete }) {
+  const theme = useTheme();
   const [saleItems, setSaleItems] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [receiptNamingMethod, setReceiptNamingMethod] = useState('sequential'); // 'sequential' or 'datetime'
   const [totalDiscount, setTotalDiscount] = useState(0); // Total discount for all items
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [scannedCode, setScannedCode] = useState('');
+  const [cameraStream, setCameraStream] = useState(null);
+  const videoRef = React.useRef(null);
 
   React.useEffect(() => {
     if (open) {
@@ -53,12 +59,63 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
       i === idx ? { ...row, itemCode } : row
     );
     setSaleItems(updatedItems);
-    
+
     // Auto-add next row if this is the last row and it's not empty
     if (idx === saleItems.length - 1 && itemCode) {
       setSaleItems([...updatedItems, { itemCode: '', quantity: 1, discount: 0 }]);
     }
   };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment' // Use back camera on mobile
+        } 
+      });
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Camera access denied. Please allow camera permission and try again.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setCameraOpen(false);
+  };
+
+  const handleCameraScan = () => {
+    setCameraOpen(true);
+    startCamera();
+  };
+
+  const handleScanResult = (code) => {
+    setScannedCode(code);
+    // Find the first empty row or add a new one
+    const emptyRowIndex = saleItems.findIndex(row => !row.itemCode);
+    if (emptyRowIndex !== -1) {
+      handleItemCodeChange(emptyRowIndex, code);
+    } else {
+      setSaleItems([...saleItems, { itemCode: code, quantity: 1, discount: 0 }]);
+    }
+    stopCamera();
+  };
+
+  // Cleanup camera on unmount
+  React.useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [cameraStream]);
 
   const handleRemoveItem = (idx) => {
     setSaleItems(saleItems.filter((_, i) => i !== idx));
@@ -371,6 +428,7 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>
         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
@@ -378,18 +436,34 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
         </Typography>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddItem} disabled={loading}>
-            Add Item
-          </Button>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 1, 
-            bgcolor: 'info.light', 
-            px: 2, 
-            py: 1, 
-            borderRadius: 1 
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddItem} disabled={loading}>
+              Add Item
+            </Button>
+            <Button 
+              variant="contained" 
+              startIcon={<CameraIcon />} 
+              onClick={handleCameraScan} 
+              disabled={loading}
+              sx={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)',
+                }
+              }}
+            >
+              Scan Barcode
+            </Button>
+          </Box>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            bgcolor: 'info.light',
+            px: 2,
+            py: 1,
+            borderRadius: 1
           }}>
             <Typography variant="body2" sx={{ color: 'info.contrastText', fontWeight: 500 }}>
               📱 Scanner Ready: Focus on "Item Code" field and scan barcodes
@@ -565,5 +639,121 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
         </Button>
       </DialogActions>
     </Dialog>
+
+    {/* Camera Scanner Modal */}
+    <Dialog
+      open={cameraOpen}
+      onClose={stopCamera}
+      maxWidth="sm"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          background: theme.palette.mode === 'dark' 
+            ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
+            : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+          borderRadius: 2
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        background: theme.palette.mode === 'dark' 
+          ? 'rgba(15, 23, 42, 0.8)'
+          : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid',
+        borderColor: theme.palette.mode === 'dark' 
+          ? 'rgba(255, 255, 255, 0.1)' 
+          : 'rgba(0, 0, 0, 0.1)',
+        py: 2
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CameraIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Scan Barcode/QR Code
+            </Typography>
+          </Box>
+          <Button onClick={stopCamera} variant="outlined" size="small">
+            Close
+          </Button>
+        </Box>
+      </DialogTitle>
+      <DialogContent sx={{ p: 3 }}>
+        <Box sx={{ 
+          position: 'relative',
+          borderRadius: 2,
+          overflow: 'hidden',
+          border: '2px solid',
+          borderColor: 'primary.main',
+          background: '#000'
+        }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: '100%',
+              height: '300px',
+              objectFit: 'cover'
+            }}
+          />
+          <Box sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '200px',
+            height: '100px',
+            border: '2px solid',
+            borderColor: 'primary.main',
+            borderRadius: 1,
+            background: 'rgba(0,0,0,0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Typography variant="body2" sx={{ color: 'white', textAlign: 'center' }}>
+              Position barcode here
+            </Typography>
+          </Box>
+        </Box>
+        
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Point your camera at a barcode or QR code to scan
+          </Typography>
+          
+          {/* Manual input fallback */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>
+              Or enter code manually:
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Enter barcode/QR code"
+              value={scannedCode}
+              onChange={(e) => setScannedCode(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && scannedCode) {
+                  handleScanResult(scannedCode);
+                }
+              }}
+              sx={{ mb: 2 }}
+            />
+            <Button 
+              variant="contained" 
+              onClick={() => handleScanResult(scannedCode)}
+              disabled={!scannedCode}
+              fullWidth
+            >
+              Add Item
+            </Button>
+          </Box>
+        </Box>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 } 
