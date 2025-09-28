@@ -31,7 +31,7 @@ import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { auth } from '../firebase';
 
-export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger }) {
+export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger, items: customItems }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,6 +41,12 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (customItems) {
+      setItems(customItems);
+      setLoading(false);
+      return;
+    }
+
     const userId = auth.currentUser?.uid;
     if (!userId) return;
 
@@ -77,7 +83,7 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
       setError('Failed to load inventory items');
       setLoading(false);
     }
-  }, [sortBy, sortOrder, refreshTrigger]);
+  }, [sortBy, sortOrder, refreshTrigger, customItems]);
 
   const handleDelete = async (itemId) => {
     if (window.confirm('Are you sure you want to delete this item?')) {
@@ -180,6 +186,7 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
           <TableHead>
             <TableRow sx={{ bgcolor: 'background.default' }}>
               <TableCell sx={{ fontWeight: 600 }}>Item Name</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Item Code</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Box/Rack</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Profit %</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Seller Price</TableCell>
@@ -192,7 +199,7 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
           <TableBody>
             {filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                <TableCell colSpan={9} sx={{ textAlign: 'center', py: 4 }}>
                   <Typography color="text.secondary">
                     {searchTerm ? 'No items found matching your search' : 'No inventory items yet'}
                   </Typography>
@@ -209,6 +216,11 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger 
                     <TableCell>
                       <Typography variant="body1" sx={{ fontWeight: 500 }}>
                         {item.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                        {item.itemCode || 'N/A'}
                       </Typography>
                     </TableCell>
                     <TableCell>

@@ -89,6 +89,7 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
     setRefreshTrigger(prev => prev + 1);
   };
 
+
   // Calculate statistics
   const totalItems = items.length;
   const lowStockItems = items.filter(item => item.quantity <= 10 && item.quantity > 0).length;
@@ -108,90 +109,203 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
       background: theme.palette.mode === 'dark' 
         ? 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)'
         : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e3f2fd 100%)',
-      position: 'relative'
+      position: 'relative',
+      '& @keyframes pulse': {
+        '0%': { opacity: 1 },
+        '50%': { opacity: 0.5 },
+        '100%': { opacity: 1 }
+      }
     }}>
-      {/* Professional Header */}
+      {/* Modern Sticky Header */}
       <Box sx={{ 
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
         background: theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)'
-          : 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%)',
-        color: 'white',
-        py: 2,
-        position: 'relative',
-        overflow: 'hidden'
+          ? 'rgba(15, 23, 42, 0.8)'
+          : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid',
+        borderColor: theme.palette.mode === 'dark' 
+          ? 'rgba(255, 255, 255, 0.1)' 
+          : 'rgba(0, 0, 0, 0.1)',
+        py: 1.5,
+        transition: 'all 0.3s ease'
       }}>
-        {/* Background Pattern */}
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-          opacity: 0.3
-        }} />
-        
         <Container maxWidth="lg">
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {/* Modern Icon */}
               <Box sx={{ 
-                p: 2, 
-                bgcolor: 'rgba(255, 255, 255, 0.1)', 
-                borderRadius: 2, 
-                mr: 3,
-                backdropFilter: 'blur(10px)'
+                position: 'relative',
+                mr: 3
               }}>
-                <BusinessIcon sx={{ fontSize: 24, color: 'white' }} />
+                <Box sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '12px',
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                    : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: '12px',
+                    padding: '1px',
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1))',
+                    mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                    maskComposite: 'xor'
+                  }
+                }}>
+                  <Typography sx={{ 
+                    fontSize: '20px', 
+                    fontWeight: 'bold',
+                    color: 'white',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                  }}>
+                    📦
+                  </Typography>
+                </Box>
               </Box>
+              
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 600, color: 'white', mb: 0.5, fontSize: '1.1rem' }}>
-                  InventoryPro Dashboard
+                <Typography variant="h6" sx={{ 
+                  fontWeight: 700, 
+                  color: 'text.primary', 
+                  mb: 0.5, 
+                  fontSize: '1.2rem',
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)'
+                    : 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>
+                  InventoryPro
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.8rem' }}>
-                  Welcome back, {auth.currentUser?.displayName || 'User'}! 👋
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ 
+                    color: 'text.secondary', 
+                    fontSize: '0.8rem',
+                    fontWeight: 500
+                  }}>
+                    Welcome back, {auth.currentUser?.displayName || 'User'}! 👋
+                  </Typography>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5,
+                    ml: 2
+                  }}>
+                    <Chip 
+                      label="Fast" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: '0.7rem',
+                        height: 20,
+                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                        color: 'white',
+                        fontWeight: 600
+                      }} 
+                    />
+                    <Chip 
+                      label="Reliable" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: '0.7rem',
+                        height: 20,
+                        background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                        color: 'white',
+                        fontWeight: 600
+                      }} 
+                    />
+                    <Chip 
+                      label="Smart" 
+                      size="small" 
+                      sx={{ 
+                        fontSize: '0.7rem',
+                        height: 20,
+                        background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                        color: 'white',
+                        fontWeight: 600
+                      }} 
+                    />
+                  </Box>
+                </Box>
               </Box>
             </Box>
             
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* System Status */}
               <Box sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 1,
-                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                bgcolor: theme.palette.mode === 'dark'
+                  ? 'rgba(16, 185, 129, 0.1)'
+                  : 'rgba(16, 185, 129, 0.1)',
                 px: 2,
                 py: 1,
-                borderRadius: 2,
-                backdropFilter: 'blur(10px)'
+                borderRadius: '20px',
+                border: '1px solid',
+                borderColor: theme.palette.mode === 'dark'
+                  ? 'rgba(16, 185, 129, 0.2)'
+                  : 'rgba(16, 185, 129, 0.2)'
               }}>
                 <Box sx={{ 
                   width: 8, 
                   height: 8, 
                   bgcolor: '#10b981', 
                   borderRadius: '50%',
-                  '@keyframes pulse': {
-                    '0%': { opacity: 1 },
-                    '50%': { opacity: 0.5 },
-                    '100%': { opacity: 1 }
-                  },
                   animation: 'pulse 2s infinite'
                 }} />
-                <Typography variant="body2" sx={{ color: 'white', fontWeight: 500, fontSize: '0.7rem' }}>
+                <Typography variant="body2" sx={{ 
+                  color: 'text.primary', 
+                  fontWeight: 600, 
+                  fontSize: '0.8rem' 
+                }}>
                   System Online
                 </Typography>
               </Box>
               
+              {/* Profile Button */}
               <IconButton 
                 onClick={() => setProfileDrawerOpen(true)}
                 sx={{ 
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                  backdropFilter: 'blur(10px)',
-                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' }
+                  width: 40,
+                  height: 40,
+                  borderRadius: '12px',
+                  background: theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.1)'
+                    : 'rgba(0, 0, 0, 0.05)',
+                  border: '1px solid',
+                  borderColor: theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.1)'
+                    : 'rgba(0, 0, 0, 0.1)',
+                  '&:hover': { 
+                    background: theme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(0, 0, 0, 0.1)',
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <Avatar 
                   src={auth.currentUser?.photoURL}
-                  sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', width: 40, height: 40 }}
+                  sx={{ 
+                    width: 32, 
+                    height: 32,
+                    border: '2px solid',
+                    borderColor: theme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(0, 0, 0, 0.1)'
+                  }}
                 >
                   {auth.currentUser?.displayName?.charAt(0)?.toUpperCase() || auth.currentUser?.email?.charAt(0)?.toUpperCase()}
                 </Avatar>
@@ -311,6 +425,16 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
                         <Typography variant="body2">Last Backup</Typography>
                         <Typography variant="body2" color="text.secondary">2 hours ago</Typography>
                       </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2">Scanner</Typography>
+                        <Chip 
+                          label="Ready" 
+                          color="success" 
+                          size="small" 
+                          icon={<CheckCircleIcon />}
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      </Box>
                     </Box>
                   </CardContent>
                 </Card>
@@ -405,6 +529,7 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
         onThemeChange={onThemeChange}
         isDarkMode={isDarkMode}
       />
+
 
       {/* Professional Footer */}
       <Box sx={{ 

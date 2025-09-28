@@ -19,6 +19,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
   const [formData, setFormData] = useState({
     name: '',
+    itemCode: '',
     buyerPrice: '',
     sellerPrice: '',
     quantity: '',
@@ -31,6 +32,7 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
     if (item) {
       setFormData({
         name: item.name || '',
+        itemCode: item.itemCode || '',
         buyerPrice: item.buyerPrice || '',
         sellerPrice: item.sellerPrice || '',
         quantity: item.quantity || '',
@@ -58,6 +60,11 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
       setLoading(false);
       return;
     }
+    if (!formData.itemCode.trim()) {
+      setError('Item code is required');
+      setLoading(false);
+      return;
+    }
     if (!formData.buyerPrice || parseFloat(formData.buyerPrice) <= 0) {
       setError('Buyer price must be greater than 0');
       setLoading(false);
@@ -78,6 +85,7 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
       const itemRef = doc(db, 'inventory', item.id);
       await updateDoc(itemRef, {
         name: formData.name.trim(),
+        itemCode: formData.itemCode.trim(),
         buyerPrice: parseFloat(formData.buyerPrice),
         sellerPrice: parseFloat(formData.sellerPrice),
         quantity: parseInt(formData.quantity),
@@ -125,6 +133,18 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
             onChange={handleChange}
             required
             disabled={loading}
+            sx={{ mb: 3 }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Item Code (Barcode/QR)"
+            name="itemCode"
+            value={formData.itemCode}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            placeholder="Enter barcode, QR code, or unique identifier"
             sx={{ mb: 3 }}
           />
           

@@ -18,7 +18,6 @@ import {
   IconButton,
   Alert,
   CircularProgress,
-  Autocomplete,
   FormControl,
   InputLabel,
   Select,
@@ -39,25 +38,25 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
 
   React.useEffect(() => {
     if (open) {
-      setSaleItems([{ itemId: '', quantity: 1, discount: 0 }]); // Start with one empty row
+      setSaleItems([{ itemCode: '', quantity: 1, discount: 0 }]); // Start with one empty row
       setError('');
       setLoading(false);
     }
   }, [open]);
 
   const handleAddItem = () => {
-    setSaleItems([...saleItems, { itemId: '', quantity: 1, discount: 0 }]);
+    setSaleItems([...saleItems, { itemCode: '', quantity: 1, discount: 0 }]);
   };
 
-  const handleItemSelect = (idx, itemId) => {
+  const handleItemCodeChange = (idx, itemCode) => {
     const updatedItems = saleItems.map((row, i) =>
-      i === idx ? { ...row, itemId } : row
+      i === idx ? { ...row, itemCode } : row
     );
     setSaleItems(updatedItems);
     
     // Auto-add next row if this is the last row and it's not empty
-    if (idx === saleItems.length - 1 && itemId) {
-      setSaleItems([...updatedItems, { itemId: '', quantity: 1, discount: 0 }]);
+    if (idx === saleItems.length - 1 && itemCode) {
+      setSaleItems([...updatedItems, { itemCode: '', quantity: 1, discount: 0 }]);
     }
   };
 
@@ -78,10 +77,10 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
     ));
   };
 
-  const getItem = (itemId) => items.find(i => i.id === itemId);
+  const getItem = (itemCode) => items.find(i => i.itemCode === itemCode);
 
   const receiptRows = saleItems.map(row => {
-    const item = getItem(row.itemId);
+    const item = getItem(row.itemCode);
     const quantity = parseInt(row.quantity) || 0;
     const price = item ? item.sellerPrice : 0;
     const itemDiscount = parseFloat(row.discount) || 0;
@@ -107,10 +106,10 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
   const validateSale = () => {
     if (saleItems.length === 0) return 'Add at least one item.';
     for (const row of saleItems) {
-      if (!row.itemId) return 'Select an item for each row.';
+      if (!row.itemCode) return 'Enter item code for each row.';
       if (!row.quantity || parseInt(row.quantity) <= 0) return 'Quantity must be at least 1.';
-      const item = getItem(row.itemId);
-      if (!item) return 'Invalid item selected.';
+      const item = getItem(row.itemCode);
+      if (!item) return `Item with code "${row.itemCode}" not found.`;
       if (parseInt(row.quantity) > item.quantity) return `Not enough stock for ${item.name}.`;
     }
     return '';
@@ -160,7 +159,7 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
       
       // Update inventory in Firestore
       for (const row of saleItems) {
-        const item = getItem(row.itemId);
+        const item = getItem(row.itemCode);
         console.log('Updating item:', item.name, 'from', item.quantity, 'to', item.quantity - parseInt(row.quantity));
         
         const newQty = item.quantity - parseInt(row.quantity);
@@ -372,17 +371,30 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth>
       <DialogTitle>
         <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
           Sell Items & Generate Receipt
         </Typography>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ mb: 2 }}>
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddItem} disabled={loading}>
             Add Item
           </Button>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 1, 
+            bgcolor: 'info.light', 
+            px: 2, 
+            py: 1, 
+            borderRadius: 1 
+          }}>
+            <Typography variant="body2" sx={{ color: 'info.contrastText', fontWeight: 500 }}>
+              📱 Scanner Ready: Focus on "Item Code" field and scan barcodes
+            </Typography>
+          </Box>
         </Box>
         
         {/* Receipt Naming Method Selection */}
@@ -412,7 +424,8 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Item</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Item Code</TableCell>
+                <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Item Name</TableCell>
                 <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Unit Price</TableCell>
                 <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Quantity</TableCell>
                 <TableCell sx={{ fontSize: '0.875rem', fontWeight: 600, py: 1 }}>Discount %</TableCell>
@@ -422,33 +435,46 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
             </TableHead>
             <TableBody>
               {saleItems.map((row, idx) => {
-                const item = getItem(row.itemId);
+                const item = getItem(row.itemCode);
                 return (
                   <TableRow key={idx}>
-                    <TableCell sx={{ minWidth: 200, py: 1 }}>
-                      <Autocomplete
-                        options={items}
-                        getOptionLabel={option => option.name || ''}
-                        value={item || null}
-                        onChange={(_, newValue) => {
-                          const itemId = newValue ? newValue.id : '';
-                          handleChange(idx, 'itemId', itemId);
-                          handleItemSelect(idx, itemId);
+                    <TableCell sx={{ minWidth: 150, py: 1 }}>
+                      <TextField
+                        label="Item Code"
+                        value={row.itemCode}
+                        onChange={(e) => {
+                          handleChange(idx, 'itemCode', e.target.value);
+                          handleItemCodeChange(idx, e.target.value);
                         }}
-                        renderInput={params => (
-                          <TextField 
-                            {...params} 
-                            label="Select Item" 
-                            variant="outlined" 
-                            fullWidth 
-                            disabled={loading}
-                            size="small"
-                            sx={{ fontSize: '0.875rem' }}
-                          />
-                        )}
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        onKeyDown={(e) => {
+                          // Handle scanner input (usually ends with Enter)
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            // Auto-focus next field or add new row
+                            if (idx === saleItems.length - 1) {
+                              handleAddItem();
+                            }
+                          }
+                        }}
+                        fullWidth
                         disabled={loading}
+                        size="small"
+                        placeholder="Scan barcode or type item code"
+                        sx={{ 
+                          fontSize: '0.875rem',
+                          '& .MuiInputBase-input': {
+                            fontFamily: 'monospace' // Better for barcode display
+                          }
+                        }}
+                        error={row.itemCode && !item}
+                        helperText={row.itemCode && !item ? 'Item not found' : 'Scan barcode or type code'}
+                        autoFocus={idx === 0} // Auto-focus first row
                       />
+                    </TableCell>
+                    <TableCell sx={{ py: 1 }}>
+                      <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+                        {item ? item.name : '-'}
+                      </Typography>
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>

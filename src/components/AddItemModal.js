@@ -20,6 +20,7 @@ import { auth } from '../firebase';
 export default function AddItemModal({ open, onClose, onItemAdded }) {
   const [formData, setFormData] = useState({
     name: '',
+    itemCode: '',
     buyerPrice: '',
     sellerPrice: '',
     quantity: '',
@@ -47,6 +48,11 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
       setLoading(false);
       return;
     }
+    if (!formData.itemCode.trim()) {
+      setError('Item code is required');
+      setLoading(false);
+      return;
+    }
     if (!formData.buyerPrice || parseFloat(formData.buyerPrice) <= 0) {
       setError('Buyer price must be greater than 0');
       setLoading(false);
@@ -66,6 +72,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
     try {
       const itemData = {
         name: formData.name.trim(),
+        itemCode: formData.itemCode.trim(),
         buyerPrice: parseFloat(formData.buyerPrice),
         sellerPrice: parseFloat(formData.sellerPrice),
         quantity: parseInt(formData.quantity),
@@ -80,6 +87,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
       // Reset form
       setFormData({
         name: '',
+        itemCode: '',
         buyerPrice: '',
         sellerPrice: '',
         quantity: '',
@@ -99,6 +107,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
     if (!loading) {
       setFormData({
         name: '',
+        itemCode: '',
         buyerPrice: '',
         sellerPrice: '',
         quantity: '',
@@ -134,6 +143,18 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
             onChange={handleChange}
             required
             disabled={loading}
+            sx={{ mb: 3 }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Item Code (Barcode/QR)"
+            name="itemCode"
+            value={formData.itemCode}
+            onChange={handleChange}
+            required
+            disabled={loading}
+            placeholder="Enter barcode, QR code, or unique identifier"
             sx={{ mb: 3 }}
           />
           
