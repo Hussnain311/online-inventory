@@ -46,6 +46,8 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [sellModalOpen, setSellModalOpen] = useState(false);
   const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
+  const [filteredView, setFilteredView] = useState(null);
+  const [filteredItems, setFilteredItems] = useState([]);
 
   useEffect(() => {
     const userId = auth.currentUser?.uid;
@@ -89,6 +91,28 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const handleCardClick = (type) => {
+    setFilteredView(type);
+    let filtered = [];
+    switch (type) {
+      case 'low-stock':
+        filtered = items.filter(item => item.quantity <= 10 && item.quantity > 0);
+        break;
+      case 'out-of-stock':
+        filtered = items.filter(item => item.quantity === 0);
+        break;
+      case 'categories':
+        filtered = items;
+        break;
+      case 'total':
+        filtered = items;
+        break;
+      default:
+        filtered = items;
+    }
+    setFilteredItems(filtered);
+  };
+
 
   // Calculate statistics
   const totalItems = items.length;
@@ -97,10 +121,10 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
   const categories = new Set(items.map(item => item.category || 'Uncategorized')).size;
 
   const stats = [
-    { title: 'Total Items', value: totalItems.toString(), icon: <BusinessIcon />, color: 'primary.main' },
-    { title: 'Low Stock', value: lowStockItems.toString(), icon: <WarningIcon />, color: 'warning.main' },
-    { title: 'Out of Stock', value: outOfStockItems.toString(), icon: <ShoppingCartIcon />, color: 'error.main' },
-    { title: 'Categories', value: categories.toString(), icon: <DashboardIcon />, color: 'success.main' },
+    { title: 'Total Items', value: totalItems.toString(), icon: <BusinessIcon />, color: 'primary.main', type: 'total' },
+    { title: 'Low Stock', value: lowStockItems.toString(), icon: <WarningIcon />, color: 'warning.main', type: 'low-stock' },
+    { title: 'Out of Stock', value: outOfStockItems.toString(), icon: <ShoppingCartIcon />, color: 'error.main', type: 'out-of-stock' },
+    { title: 'Categories', value: categories.toString(), icon: <DashboardIcon />, color: 'success.main', type: 'categories' },
   ];
 
   return (
@@ -334,11 +358,13 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
                 <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
                   <Card 
                     elevation={0} 
+                    onClick={() => handleCardClick(stat.type)}
                     sx={{ 
                       border: '1px solid',
                       borderColor: 'divider',
                       borderRadius: 3,
                       transition: 'all 0.3s ease',
+                      cursor: 'pointer',
                       '&:hover': {
                         transform: 'translateY(-4px)',
                         boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
@@ -529,6 +555,107 @@ export default function Inventory({ isDarkMode, onThemeChange }) {
         onThemeChange={onThemeChange}
         isDarkMode={isDarkMode}
       />
+
+      {/* Filtered Items Dialog */}
+      <Dialog 
+        open={!!filteredView} 
+        onClose={() => setFilteredView(null)} 
+        maxWidth="lg" 
+        fullWidth
+        fullScreen
+        sx={{
+          '& .MuiDialog-paper': {
+            background: theme.palette.mode === 'dark' 
+              ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
+              : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: 0
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: theme.palette.mode === 'dark' 
+            ? 'rgba(15, 23, 42, 0.8)'
+            : 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid',
+          borderColor: theme.palette.mode === 'dark' 
+            ? 'rgba(255, 255, 255, 0.1)' 
+            : 'rgba(0, 0, 0, 0.1)',
+          py: 2
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '10px',
+                background: theme.palette.mode === 'dark'
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                  : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)'
+              }}>
+                <Typography sx={{ 
+                  fontSize: '16px', 
+                  color: 'white'
+                }}>
+                  📦
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="h5" sx={{ 
+                  fontWeight: 700,
+                  background: theme.palette.mode === 'dark'
+                    ? 'linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%)'
+                    : 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}>
+                  {filteredView === 'low-stock' && 'Low Stock Items'}
+                  {filteredView === 'out-of-stock' && 'Out of Stock Items'}
+                  {filteredView === 'categories' && 'All Categories'}
+                  {filteredView === 'total' && 'All Items'}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                  {filteredItems.length} items found
+                </Typography>
+              </Box>
+            </Box>
+            <Button 
+              onClick={() => setFilteredView(null)}
+              variant="outlined"
+              sx={{
+                borderRadius: '10px',
+                px: 3,
+                py: 1,
+                borderColor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.2)' 
+                  : 'rgba(0, 0, 0, 0.2)',
+                '&:hover': {
+                  borderColor: theme.palette.mode === 'dark' 
+                    ? 'rgba(255, 255, 255, 0.4)' 
+                    : 'rgba(0, 0, 0, 0.4)',
+                  transform: 'scale(1.05)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Close
+            </Button>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <InventoryTable 
+            items={filteredItems}
+            onEditItem={handleEditItem}
+            onViewItem={handleViewItem}
+            refreshTrigger={refreshTrigger}
+          />
+        </DialogContent>
+      </Dialog>
 
 
       {/* Professional Footer */}
