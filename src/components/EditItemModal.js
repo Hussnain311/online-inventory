@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -9,44 +9,32 @@ import {
   Box,
   Typography,
   Alert,
-  CircularProgress,
-  InputAdornment
+  CircularProgress
 } from '@mui/material';
-import { Edit as EditIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Lock as LockIcon } from '@mui/icons-material';
 import { db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
   const [formData, setFormData] = useState({
-    name: '',
-    itemCode: '',
-    buyerPrice: '',
-    sellerPrice: '',
-    quantity: '',
-    boxNumber: ''
+    price: '',
+    quantity: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (item) {
+    if (item && open) {
       setFormData({
-        name: item.name || '',
-        itemCode: item.itemCode || '',
-        buyerPrice: item.buyerPrice || '',
-        sellerPrice: item.sellerPrice || '',
-        quantity: item.quantity || '',
-        boxNumber: item.boxNumber || ''
+        price: item.price?.toString() || '',
+        quantity: item.quantity?.toString() || ''
       });
     }
   }, [item, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -54,28 +42,19 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
     setError('');
     setLoading(true);
 
-    // Validation
-    if (!formData.name.trim()) {
-      setError('Item name is required');
+    if (!item) {
+      setError('No item selected');
       setLoading(false);
       return;
     }
-    if (!formData.itemCode.trim()) {
-      setError('Item code is required');
+
+    // Validation - only price and quantity can be updated
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      setError('Price must be greater than 0');
       setLoading(false);
       return;
     }
-    if (!formData.buyerPrice || parseFloat(formData.buyerPrice) <= 0) {
-      setError('Buyer price must be greater than 0');
-      setLoading(false);
-      return;
-    }
-    if (!formData.sellerPrice || parseFloat(formData.sellerPrice) <= 0) {
-      setError('Seller price must be greater than 0');
-      setLoading(false);
-      return;
-    }
-    if (!formData.quantity || parseInt(formData.quantity) < 0) {
+    if (formData.quantity === '' || parseInt(formData.quantity) < 0) {
       setError('Quantity must be 0 or greater');
       setLoading(false);
       return;
@@ -84,12 +63,8 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
     try {
       const itemRef = doc(db, 'inventory', item.id);
       await updateDoc(itemRef, {
-        name: formData.name.trim(),
-        itemCode: formData.itemCode.trim(),
-        buyerPrice: parseFloat(formData.buyerPrice),
-        sellerPrice: parseFloat(formData.sellerPrice),
+        price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
-        boxNumber: formData.boxNumber.trim() || '',
         updatedAt: serverTimestamp()
       });
       onItemUpdated();
@@ -108,12 +83,14 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
     }
   };
 
+  if (!item) return null;
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <EditIcon color="primary" />
-          <Typography variant="h6">Edit Item</Typography>
+          <Typography variant="h6">Update Item</Typography>
         </Box>
       </DialogTitle>
       
@@ -124,57 +101,47 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
               {error}
             </Alert>
           )}
-          
+
+          {/* Fixed Fields - Display Only (Cannot be changed) */}
+          <Box sx={{ mb: 4, p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+              <LockIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
+              These fields cannot be changed:
+            </Typography>
+            
+            <TextField
+              fullWidth
+              label="Item Name"
+              value={item.name}
+              disabled
+              sx={{ mb: 2 }}
+              InputProps={{ readOnly: true }}
+            />
+            
+            <TextField
+              fullWidth
+              label="Item Code"
+              value={item.itemCode}
+              disabled
+              InputProps={{ readOnly: true }}
+            />
+          </Box>
+
+          <Typography variant="subtitle2" color="primary" sx={{ mb: 2 }}>
+            You can only update these fields:
+          </Typography>
+
           <TextField
             fullWidth
-            label="Item Name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            disabled={loading}
-            sx={{ mb: 3 }}
-          />
-          
-          <TextField
-            fullWidth
-            label="Item Code (Barcode/QR)"
-            name="itemCode"
-            value={formData.itemCode}
-            onChange={handleChange}
-            required
-            disabled={loading}
-            placeholder="Enter barcode, QR code, or unique identifier"
-            sx={{ mb: 3 }}
-          />
-          
-          <TextField
-            fullWidth
-            label="Buyer Price"
-            name="buyerPrice"
+            label="Price"
+            name="price"
             type="number"
-            value={formData.buyerPrice}
+            step="0.01"
+            min="0"
+            value={formData.price}
             onChange={handleChange}
             required
             disabled={loading}
-            InputProps={{
-              startAdornment: <InputAdornment position="start">PKR</InputAdornment>,
-            }}
-            sx={{ mb: 3 }}
-          />
-          
-          <TextField
-            fullWidth
-            label="Seller Price"
-            name="sellerPrice"
-            type="number"
-            value={formData.sellerPrice}
-            onChange={handleChange}
-            required
-            disabled={loading}
-            InputProps={{
-              startAdornment: <InputAdornment position="start">PKR</InputAdornment>,
-            }}
             sx={{ mb: 3 }}
           />
           
@@ -183,21 +150,10 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
             label="Quantity"
             name="quantity"
             type="number"
+            min="0"
             value={formData.quantity}
             onChange={handleChange}
             required
-            disabled={loading}
-            inputProps={{ min: 0 }}
-            sx={{ mb: 3 }}
-          />
-          
-          <TextField
-            fullWidth
-            label="Box/Rack Number"
-            name="boxNumber"
-            value={formData.boxNumber}
-            onChange={handleChange}
-            placeholder="e.g., A-1, B-2, Rack-3"
             disabled={loading}
           />
         </DialogContent>
@@ -218,4 +174,4 @@ export default function EditItemModal({ open, onClose, item, onItemUpdated }) {
       </form>
     </Dialog>
   );
-} 
+}

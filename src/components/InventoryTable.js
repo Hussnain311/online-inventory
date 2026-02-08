@@ -208,8 +208,8 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger,
             ) : (
               filteredItems.map((item) => {
                 const stockStatus = getStockStatus(item.quantity);
-                const profitPercentage = calculateProfitPercentage(item.buyerPrice, item.sellerPrice);
-                const totalValue = item.sellerPrice * item.quantity;
+                const profitPercentage = calculateProfitPercentage(item.buyerPrice, item.price);
+                const totalValue = item.price * item.quantity;
                 
                 return (
                   <TableRow key={item.id} hover>
@@ -241,7 +241,7 @@ export default function InventoryTable({ onEditItem, onViewItem, refreshTrigger,
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {formatPrice(item.sellerPrice)}
+                        {formatPrice(item.price)}
                       </Typography>
                     </TableCell>
                     <TableCell>
