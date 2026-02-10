@@ -24,7 +24,8 @@ import {
   MenuItem,
   useTheme,
   Tabs,
-  Tab
+  Tab,
+  Autocomplete
 } from '@mui/material';
 import { Add as AddIcon, Remove as RemoveIcon, Print as PrintIcon, CameraAlt as CameraIcon, Keyboard as KeyboardIcon } from '@mui/icons-material';
 import jsPDF from 'jspdf';
@@ -162,8 +163,34 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
     ));
   };
 
-  // Get item by code - checks both price and sellerPrice for compatibility
-  const getItem = (itemCode) => items.find(i => i.itemCode === itemCode);
+  // Get item by code or name - case insensitive search
+  const getItem = (searchTerm) => {
+    if (!searchTerm) return null;
+    const searchLower = searchTerm.toLowerCase().trim();
+    return items.find(i => 
+      i.itemCode?.toLowerCase() === searchLower || 
+      i.name?.toLowerCase() === searchLower
+    );
+  };
+
+  // Get filtered item suggestions for autocomplete
+  const getItemSuggestions = (inputValue) => {
+    if (!inputValue || inputValue.length < 1) return [];
+    const searchLower = inputValue.toLowerCase().trim();
+    
+    return items
+      .filter(i => 
+        i.itemCode?.toLowerCase().includes(searchLower) || 
+        i.name?.toLowerCase().includes(searchLower)
+      )
+      .map(i => ({
+        label: `${i.name} (${i.itemCode})`,
+        itemCode: i.itemCode,
+        name: i.name,
+        item: i
+      }))
+      .slice(0, 10); // Limit to 10 suggestions
+  };
 
   const getItemPrice = (item) => {
     // Support both old items (sellerPrice) and new items (price)
@@ -437,7 +464,7 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Item Code</TableCell>
+                  <TableCell>Item Name / Code</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Price</TableCell>
                   <TableCell>Qty</TableCell>
@@ -455,13 +482,44 @@ export default function SellItemsModal({ open, onClose, items, onSaleComplete })
                   return (
                     <TableRow key={idx}>
                       <TableCell>
-                        <TextField
+                        <Autocomplete
                           size="small"
+                          freeSolo
+                          options={getItemSuggestions(row.itemCode)}
                           value={row.itemCode}
-                          onChange={(e) => handleItemCodeChange(idx, e.target.value)}
-                          placeholder="Scan or type code"
-                          error={row.itemCode && !item}
-                          helperText={row.itemCode && !item ? 'Not found' : ''}
+                          onChange={(event, newValue) => {
+                            if (typeof newValue === 'string') {
+                              handleItemCodeChange(idx, newValue);
+                            } else if (newValue && newValue.itemCode) {
+                              handleItemCodeChange(idx, newValue.itemCode);
+                            } else {
+                              handleItemCodeChange(idx, '');
+                            }
+                          }}
+                          onInputChange={(event, newInputValue) => {
+                            handleItemCodeChange(idx, newInputValue);
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Type name or code"
+                              error={row.itemCode && !item}
+                              helperText={row.itemCode && !item ? 'Not found' : ''}
+                            />
+                          )}
+                          renderOption={(props, option) => (
+                            <li {...props} key={option.itemCode}>
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {option.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  Code: {option.itemCode} • Stock: {option.item.quantity} • PKR {getItemPrice(option.item)}
+                                </Typography>
+                              </Box>
+                            </li>
+                          )}
+                          sx={{ minWidth: 200 }}
                         />
                       </TableCell>
                       <TableCell>{item ? item.name : '-'}</TableCell>
