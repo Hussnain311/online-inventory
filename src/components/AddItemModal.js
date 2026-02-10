@@ -221,6 +221,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
   const [formData, setFormData] = useState({
     name: '',
     itemCode: '',
+    boxRack: '',
     price: '',
     quantity: ''
   });
@@ -252,6 +253,11 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
       setLoading(false);
       return;
     }
+    if (!formData.boxRack.trim()) {
+      setError('Box/Rack location is required');
+      setLoading(false);
+      return;
+    }
     if (!formData.price || parseFloat(formData.price) <= 0) {
       setError('Price must be greater than 0');
       setLoading(false);
@@ -267,6 +273,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
       const itemData = {
         name: formData.name.trim(),
         itemCode: formData.itemCode.trim(),
+        boxRack: formData.boxRack.trim(),
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
         userId: auth.currentUser.uid,
@@ -276,7 +283,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
 
       await addDoc(collection(db, 'inventory'), itemData);
       
-      setFormData({ name: '', itemCode: '', price: '', quantity: '' });
+      setFormData({ name: '', itemCode: '', boxRack: '', price: '', quantity: '' });
       onItemAdded();
       onClose();
     } catch (err) {
@@ -288,7 +295,7 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
 
   const handleClose = () => {
     if (!loading) {
-      setFormData({ name: '', itemCode: '', price: '', quantity: '' });
+      setFormData({ name: '', itemCode: '', boxRack: '', price: '', quantity: '' });
       setError('');
       onClose();
     }
@@ -351,6 +358,18 @@ export default function AddItemModal({ open, onClose, onItemAdded }) {
             <Typography variant="caption" color="text.secondary" sx={{ mb: 3, display: 'block' }}>
               Click camera icon to scan QR/Barcode, or type manually
             </Typography>
+            
+            <TextField
+              fullWidth
+              label="Box/Rack Location"
+              name="boxRack"
+              value={formData.boxRack}
+              onChange={handleChange}
+              required
+              disabled={loading}
+              placeholder="e.g., A-12, Shelf 3, Box 5"
+              sx={{ mb: 3 }}
+            />
             
             <TextField
               fullWidth
